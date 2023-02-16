@@ -1,10 +1,11 @@
-const fs = require("fs/promises");
-const express = require("express");
-const cors = require("cors");
-const _ = require("lodash");
-const { v4: uuid } = require("uuid");
+import express from 'express';
+import _ from "lodash";
+import mongoose from 'mongoose';
+import Comment from './models/Comment.js';
+import dotenv from "dotenv";
 
 const app = express();
+dotenv.config();
 
 app.use(express.json());
 
@@ -21,33 +22,33 @@ app.get("/outfit", (req, res) => {
 });
 
 app.get("/comment/:id", async (req, res) => {
-    const id = req.params.id;
-    let content;
+    const { id } = req.params;
+    console.log(id)
 
     try {
-        content = await fs.readFile(`data/comment/${id}.txt`, "utf-8");
+        const comment = await Comment.findById(id);
+        return res.status(200).json(comment);
+
     } catch (err) {
         return res.sendStatus(404);
     }
-
-    res.json({
-        content: content
-    })
 })
 
 app.post("/comments", async (req, res) => {
-    const id = uuid();
     const content = req.body.content;
 
     if (!content) {
         return res.sendStatus(400);
     }
 
-    await fs.mkdir("data/comments", { recursive: true});
-    await fs.writeFile(`data/comments/${id}.txt`, content);
+    const newComment = new Comment({
+        comment: content.comment,
+        user: content.user
+    });
+    await newComment.save()
 
     res.status(201).json({
-        id: id
+        comment: newComment,
     });
 })
 
@@ -67,4 +68,16 @@ app.post("/summation", async (req, res) => {
     });
 })
 
-app.listen(3001, () => console.log("API Server is running..."));
+/* MONGOOSE SETUP */
+
+const PORT = process.env.PORT || 6001;
+mongoose
+  .connect(process.env.MONGO_URL, {
+    dbName: 'mainframe',
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    app.listen(PORT, () => console.log(`Server Port: ${PORT}`));
+  })
+  .catch((error) => console.log(`${error} did not connect`));

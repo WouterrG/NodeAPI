@@ -35,6 +35,11 @@ app.get("/comment/:id", async (req, res) => {
   }
 });
 
+app.get("/comments", async (req, res) => {
+    const allComments = await Comment.find();
+    res.status(200).json(allComments);
+})
+
 app.post("/comments", async (req, res) => {
   const content = req.body.content;
 
